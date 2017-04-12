@@ -72,6 +72,7 @@ class Crossword:
         logging.debug('Crossword __init__: initing the board')
         self._init_board()
         self._erase_all_words()
+        self._init_board()
         if num_words < 0 or num_words > self.rows * self.cols:
             raise Exception('Bad number of words {}'.format(num_words))
         self.num_words = num_words
@@ -82,13 +83,19 @@ class Crossword:
         if algo == 'back':
             if max_time:
                 with time_limit(max_time):
-                    res = self._back()
+                    try:
+                        res = self._back()
+                    except Exception:
+                        return [False, None]
             else:
                 res = self._back()
         elif algo == 'forward':
             if max_time:
                 with time_limit(max_time):
-                    res = self._forward()
+                    try:
+                        res = self._forward()
+                    except Exception:
+                        return [False, None]
             else:
                 res = self._forward()
         else:
@@ -133,8 +140,9 @@ class Crossword:
                 self.board[i][word.col][1] -= self.VERTICAL
 
     def _erase_all_words(self):
-        for word in self.current_words:
-            self._erase(word)
+        # for word in self.current_words[:]:
+        #     self._erase(word)
+        self.current_words = []
 
     def _check_inside(self, row, col):
         return (row < self.rows) and (col < self.cols) and row >= 0 and col >= 0
@@ -370,7 +378,7 @@ def time_limit(seconds):
         signal.alarm(0)
 
 
-def results_back():
+def results(algo='forward'):
     # 5x5 board - 3,5,7 words - rand, max and min len
     # 15x15 board - 13,15,17 words - rand, max and min len
     # 15x30 board - 30 words - rand, max and min len
@@ -385,14 +393,11 @@ def results_back():
         for num_words in board['word_len']:
             print('Processing board {} num_words {}'.format(board, num_words))
             times = []
+            ress = []
             for i in range(settings[0].get('num_repeats', 10)):
                 print('i = {} ...'.format(i), end=' ')
-                try:
-                    with time_limit(settings[0].get('max_time', 15)):
-                        time_start = time.perf_counter()
-                        res = c.generate(num_words, algo='back')
-                except Exception:
-                    res = [False]
+                time_start = time.perf_counter()
+                ress.append(c.generate(num_words, algo=algo, max_time=15))
                 time_end = time.perf_counter()
                 times.append(time_end - time_start)
                 print('Execution took {:.5f} seconds'.format(time_end - time_start))
@@ -401,13 +406,19 @@ def results_back():
             results.append({
                 'board': board,
                 'num_words': num_words,
-                'results': res,
+                'results': ress,
                 'times': times})
             # Crossword.show_results(c, res)
 
-    np.save('backtracking', np.array(results))
+    np.save(algo, np.array(results))
 
+
+def process_results(file1='backtracking.npy', file2='forward.npy'):
+    from pprint import pprint
+    a2 = np.load(file2)
+    pprint(a2[0])
 
 if __name__ == '__main__':
-    # results_back()
+    results()
+    process_results()
     pass
