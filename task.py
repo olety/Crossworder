@@ -2,9 +2,13 @@ import numpy as np
 import copy
 import logging
 import sys
+import signal
+import time
+from processify import processify
+from contextlib import contextmanager
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 sys.setrecursionlimit(1000)
+
 
 class Word:
     def __init__(self, word, row, col, horizontal):
@@ -32,24 +36,27 @@ class Crossword:
     ver_arr = (VERTICAL, HORIZONTAL + VERTICAL)
     current_words = []
 
-    def __init__(self, n=5, m=5, file_name='lemma.num.txt', sort=False, maximize_len=False):
+    def __init__(self, **kwargs):
         logging.info('Crossword __init__: Initializing crossword...')
-        logging.debug('Crossword __init__: n={}, m={}, fname={}'.format(n, m, file_name))
-        # Initializing crossword bounds
-        self.rows = n
-        self.cols = m
-        logging.debug('Crossword __init__: initing the board')
-        self._init_board()
+        logging.debug('kwargs:', kwargs)
+        # Reading kwargs
+        self.setup = kwargs
+        self.rows = int(kwargs.get('n', 5))
+        self.cols = int(kwargs.get('m', 5))
+        self.words_file = str(kwargs.get('word_file', 'lemma.num.txt'))
+        self.sort = bool(kwargs.get('sort', False))
+        self.maximize_len = bool(kwargs.get('maximize_len', False))
+        self.repeat_words = bool(kwargs.get('repeat_words', False))
+        logging.debug('Crossword __init__: n={}, m={}, fname={}'.format(self.rows, self.cols, self.words_file))
         # Loading words
-        logging.debug('Crossword __init__: Started loading words from {}'.format(file_name))
-        arr = np.genfromtxt(file_name, dtype='str', delimiter=' ')
+        logging.debug('Crossword __init__: Started loading words from {}'.format(self.words_file))
+        arr = np.genfromtxt(self.words_file, dtype='str', delimiter=' ')
         self.words = arr[np.in1d(arr[:, 3], ['v', 'n', 'adv', 'a'])][:, 2].tolist()
         # Number of words loaded
         logging.debug('Crossword __init__: Number of words loaded: {}'.format(len(self.words)))
-        self.maximize = maximize_len
-        self.words = list(set(x for x in self.words if len(x) <= n and len(x) <= m))
-        if sort:
-            self.words = sorted(self.words, key=len, reverse=maximize_len)
+        self.words = list(set(x for x in self.words if len(x) <= self.rows and len(x) <= self.cols))
+        if self.sort:
+            self.words = sorted(self.words, key=len, reverse=self.maximize_len)
         # After filter logging
         logging.debug('Crossword __init__: Number of words after filter: {}, maxlen = {}'.format(len(self.words), len(
             max(self.words, key=len))))
@@ -58,19 +65,38 @@ class Crossword:
         logging.debug('Crossword init_board: initing a list, rows={}, cols={}'.format(self.rows, self.cols))
         self.board = [[[None, 0] for _ in range(self.cols)] for _ in range(self.rows)]
 
-    def generate(self, num_words, algo='back'):
+    # @processify
+    def generate(self, num_words, algo='back', **kwargs):
         # Algo choices: 'back', 'frwd'
         # Setting the number of words
+        logging.debug('Crossword __init__: initing the board')
+        self._init_board()
+        self._erase_all_words()
         if num_words < 0 or num_words > self.rows * self.cols:
             raise Exception('Bad number of words {}'.format(num_words))
         self.num_words = num_words
         # Calling an algorythm function
+        time_start = time.perf_counter()
+        if kwargs.get('max_time', None):
+            max_time = int(kwargs['max_time'])
         if algo == 'back':
-            return self._back()
+            if max_time:
+                with time_limit(max_time):
+                    res = self._back()
+            else:
+                res = self._back()
         elif algo == 'forward':
-            return self._forward()
+            if max_time:
+                with time_limit(max_time):
+                    res = self._forward()
+            else:
+                res = self._forward()
         else:
             raise Exception('Bad algo chosen: {}'.format(algo))
+        time_end = time.perf_counter()
+        if kwargs.get('save_file', None):
+            self._save(kwargs['save_file'], time_end - time_start, max_time, algo, res, num_words)
+        return res
 
     def _fill(self, word):
         self.current_words.append(word)
@@ -113,7 +139,6 @@ class Crossword:
     def _check_inside(self, row, col):
         return (row < self.rows) and (col < self.cols) and row >= 0 and col >= 0
 
-
     def _check_exists(self, row, col, hor):
         for word in self.current_words:
             if word.row == row and word.col == col and word.horizontal == hor:
@@ -153,13 +178,13 @@ class Crossword:
                 return False
 
             if ((self._check_inside(cur_pos[0] + hor_one, cur_pos[1] + vert_one) and
-                         self.board[cur_pos[0] + hor_one][cur_pos[1] + vert_one][1] in (
-                     self.hor_arr if horizontal else self.ver_arr)) or
+                         self.board[cur_pos[0] + hor_one][cur_pos[1] + vert_one][1] not in [
+                         self.VERTICAL if horizontal else self.HORIZONTAL, 0]) or
                     (self._check_inside(cur_pos[0] - hor_one, cur_pos[1] - vert_one) and
-                             self.board[cur_pos[0] - hor_one][cur_pos[1] - vert_one][1] in (
-                         self.hor_arr if horizontal else self.ver_arr))):
+                             self.board[cur_pos[0] - hor_one][cur_pos[1] - vert_one][1] not in [
+                             self.VERTICAL if horizontal else self.HORIZONTAL, 0])):
                 return False
-        #     if self._check_inside(cur_pos[0] + hor_one, cur_pos[1] + vert_one):
+        # if self._check_inside(cur_pos[0] + hor_one, cur_pos[1] + vert_one):
         #         check_pos += str(self.board[cur_pos[0] + hor_one][cur_pos[1] + vert_one][1]) + ' vs ' + str(
         #             self.hor_arr if horizontal else self.ver_arr) + ', res = ' + str(
         #             self.board[cur_pos[0] + hor_one][cur_pos[1] + vert_one][1] in (
@@ -226,6 +251,7 @@ class Crossword:
                             continue
                         return gen_w
         return None
+
     @property
     def _count_words(self):
         return len(self.current_words)
@@ -238,43 +264,54 @@ class Crossword:
     @property
     def _usable_words(self):
         usable_words = copy.copy(self.words)
-        for word in self.current_words:
-            usable_words.remove(word.word)
+        if not self.repeat_words:
+            for word in self.current_words:
+                usable_words.remove(word.word)
+        return usable_words
+
+    @property
+    def _usable_words_frw(self):
+        usable_words = copy.copy(self.words)
+        if not self.repeat_words:
+            for word in self.current_words:
+                usable_words.remove(word.word)
+        for uword in usable_words[:]:
+            for letter in uword:
+                if not any(letter in word and len(word) > 1 for word in uword.split()):
+                    usable_words.remove(uword)
         return usable_words
 
     def _forward_rec(self):
         for word in self._usable_words_frw:
-            cur_word = self._next_pos(word)
+            cur_word = self._next_pos_fill(word)
             if cur_word:
-                self._fill(cur_word)
-                if self._count_words >= self.num_words:
+                if self._count_words >= self.num_words or self._forward_rec():
                     return True
                 else:
-                    return self._forward_rec()
+                    self._erase(cur_word)
         return False
 
     def _forward(self):
         # DELETE WORDS IN FORWARD
         # ONLY CHECK INTERSECTS
-        self.usable_words_frw = copy.copy(self.words)
         for word in self._usable_words_frw:
             cur_word = self._next_pos(word)
             if cur_word:
                 self._fill(cur_word)
-                self._delete_unusable()
                 if self._count_words >= self.num_words or self._forward_rec():
                     return True, self.board
                 else:
                     self._erase(cur_word)
-        return [False]
+        return [False, None]
+
+    def _save(self, file_path, time, max_time, algo, res, num_words):
+        np.save(file_path, np.array([self.current_words, res, self.setup, time, max_time, algo, num_words]))
 
     def _back_rec(self):
         for word in self._usable_words:
             cur_word = self._next_pos_fill(word)
             if cur_word:
-                if self._count_words >= self.num_words:
-                    return True
-                elif self._back_rec():
+                if self._count_words >= self.num_words or self._back_rec():
                     return True
                 else:
                     self._erase(cur_word)
@@ -297,30 +334,80 @@ class Crossword:
     def __str__(self):
         return str(self.current_words)
 
+    def show_results(self, res):
+        if len(res) > 1:
+            from pprint import pprint
+            for word in self.current_words:
+                print(word, word.row, word.col)
+            print('-' * (self.cols * 2 - 1))
+            for row in res[1]:
+                for word in row:
+                    print('-' if not word[0] else word[0], end=' ')
+                print()
+            print('-' * (self.cols * 2 - 1))
+            for row in res[1]:
+                for word in row:
+                    print('-' if not word[0] else word[1], end=' ')
+                print()
+            print('-' * (self.cols * 2 - 1))
+        else:
+            print(res[0])
+
+
+class TimeoutException(Exception): pass
+
+
+@contextmanager
+def time_limit(seconds):
+    def signal_handler(signum, frame):
+        raise TimeoutException()
+
+    signal.signal(signal.SIGALRM, signal_handler)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+
 
 def results_back():
     # 5x5 board - 3,5,7 words - rand, max and min len
     # 15x15 board - 13,15,17 words - rand, max and min len
     # 15x30 board - 30 words - rand, max and min len
+    import yaml, time
+    # logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+    with open('settings.yaml', 'r') as f:
+        settings = yaml.load(f)
+    results = []
+    for board in settings[0]['boards'][0]:
+        c = Crossword(n=board['n'], m=board['m'], sort=board['sort'],
+                      maximize_len=board.get('max', False), repeat_words=board.get('dupes', False))
+        for num_words in board['word_len']:
+            print('Processing board {} num_words {}'.format(board, num_words))
+            times = []
+            for i in range(settings[0].get('num_repeats', 10)):
+                print('i = {} ...'.format(i), end=' ')
+                try:
+                    with time_limit(settings[0].get('max_time', 15)):
+                        time_start = time.perf_counter()
+                        res = c.generate(num_words, algo='back')
+                except Exception:
+                    res = [False]
+                time_end = time.perf_counter()
+                times.append(time_end - time_start)
+                print('Execution took {:.5f} seconds'.format(time_end - time_start))
+            print('Avg time: {:.5f}'.format(np.average(times)))
+            print('Stddev: {:.5f}'.format(np.std(times)))
+            results.append({
+                'board': board,
+                'num_words': num_words,
+                'results': res,
+                'times': times})
+            # Crossword.show_results(c, res)
 
-    c = Crossword(n=15, m=30)
-    res = c.generate(45, algo='back')
-    if len(res) > 1:
-        from pprint import pprint
-        for word in c.current_words:
-            print(word, word.row, word.col)
-        print('-' * (c.cols * 2 - 1))
-        for row in res[1]:
-            for word in row:
-                print('-' if not word[0] else word[0], end=' ')
-            print()
-        print('-' * (c.cols * 2 - 1))
-        for row in res[1]:
-            for word in row:
-                print('-' if not word[0] else word[1], end=' ')
-            print()
-        print('-' * (c.cols * 2 - 1))
-    else:
-        print(res[0])
+    np.save('backtracking', np.array(results))
 
-results_back()
+
+if __name__ == '__main__':
+    # results_back()
+    pass

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Labyrinther - Plots</title>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css"
+          integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
+            integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+            crossorigin="anonymous"></script>
+    <link href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.4.min.css"
+          rel="stylesheet" type="text/css">
+    <link href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.4.min.css"
+          rel="stylesheet" type="text/css">
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-0.12.4.min.js"></script>
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.4.min.js"></script>
+
+</head>
+
+
+<body>
+<div class="container">
+    <div class="row">
+        <h1>Results for algorithm run #{{id}}!</h1>
+    </div>
+    <div class="row">
+        <h2>Setup</h2>
+    </div>
+    <div class="row">
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered">
+                <tr>
+                    <th>Variable name</th>
+                    <th>Value</th>
+                </tr>
+                {% for key, value in setup.items() %}
+                <tr>
+                    <th> {{ key }}</th>
+                    <td> {{ value }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+
+    <div class="row">
+        <h2>Results</h2>
+    </div>
+
+    <div class="row">
+        <div class="table-responsive">
+            <table class="table table-condensed table-bordered text-center">
+                <th class="text-center">Solved</th>
+                <th class="text-center">№ words</th>
+                <th class="text-center">Exec Time</th>
+                <th class="text-center">Algorithm</th>
+                <tr>
+                    <td>{{solved}}</td>
+                    <td>{{num_words}}</td>
+                    <td>{{time}}/{{max_time}}</td>
+                    <td>{% if algo == 'back' %}Backtracking{%else%}Forward-Checking{%endif%}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="row">
+        <h2>Crossword</h2>
+    </div>
+    <div class="row">
+        <div class="table-responsive">
+            <table class="table table-condensed table-bordered text-center">
+                {% for row in board %}
+                <tr>
+                    {% for col in row %}
+                    <td>
+                        {% if col[0] != None %}
+                        {{col[0]}}
+                        {% else %}
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+    <div class="row">
+        <h3>Words</h3>
+    </div>
+    <div class="row">
+        <div class="table-responsive">
+            <table class="table table-condensed table-bordered text-center">
+                <th class="text-center">Word</th>
+                <th class="text-center">Coords</th>
+                <th class="text-center">Direction</th>
+                {% for word in words %}
+                <tr>
+                    <td>
+                        {{word}}
+                    </td>
+
+                    <td>({{word.row}},{{word.col}})</td>
+
+                    <td>{% if word.horizontal %}Horizontal{%else%}Vertical{%endif%}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

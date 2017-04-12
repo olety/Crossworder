@@ -1,0 +1,14 @@
+- boards:
+  - [
+        {n: 5, m: 5, sort: true, max: true, word_len: [3,5,7], dupes: false},
+        {n: 5, m: 5, sort: true, max: false,  word_len: [3,5,7], dupes: false},
+        {n: 5, m: 5, sort: false, word_len: [3,5,7], dupes: false},
+        {n: 15, m: 15, sort: true, max: false,  word_len: [13,15,17], dupes: false},
+        {n: 15, m: 15, sort: true, max: false,  word_len: [13,15,17], dupes: false},
+        {n: 15, m: 15, sort: false, word_len: [13,15,17], dupes: false},
+        {n: 15, m: 30, sort: true, max: false,  word_len: [30,45], dupes: false},
+        {n: 15, m: 30, sort: true, max: false,  word_len: [30,45], dupes: false},
+        {n: 15, m: 30, sort: false, word_len: [30,45], dupes: false},
+    ]
+- num_repeats: 10
+- max_time: 15

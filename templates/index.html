@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Crossworder</title>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css"
+          integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
+            integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+            crossorigin="anonymous"></script>
+</head>
+<body>
+<div class="container">
+    <div class="row">
+        <h1>Crossworder</h1>
+    </div>
+    <div class="row">
+        <form class="form" role="form" method="post">
+            <div class="form-group">
+                <label for="rows">Grid - rows</label>
+                <input id="rows" type="number" value="7" class="form-control" name="rows"
+                       placeholder="Enter a number of rows"
+                       required>
+
+                <label for="cols">Grid - columns</label>
+                <input id="cols" type="number" value="7" class="form-control" name="cols"
+                       placeholder="Enter a number of columns"
+                       required>
+                <br>
+                <label for="num_words">Number of words</label>
+                <input id="num_words" type="number" value="7" class="form-control" name="num_words"
+                       placeholder="Enter num_words" required>
+                <label for="repeats">Allow repeats</label>
+                <br>
+                <label for="timeout">Timeout</label>
+                <input id="timeout" type="number" value="15" class="form-control" name="timeout"
+                       placeholder="Enter timeout" required>
+                <label for="repeats">Allow repeats</label>
+                <br>
+                <select id="repeats" name="repeats">
+                    <option value="0">False</option>
+                    <option value="1">True</option>
+                </select>
+                <br>
+                <label for="sort">Sort word array</label>
+                <br>
+                <select id="sort" name="sort">
+                    <option value="0">Random</option>
+                    <option value="1">Lowest length first</option>
+                    <option value="2">Highest length first</option>
+                </select>
+                <br>
+                <br>
+                <label for="method">Solving method</label>
+                <br>
+                <select id="method" name="method">
+                    <option value="back">Backwards propagation</option>
+                    <option value="forward">Forward checking</option>
+                </select>
+                <br>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Calculate!</button>
+        </form>
+        <br>
+        <div id="results"></div>
+    </div>
+</div>
+<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+<script src="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+</body>
+</html>
